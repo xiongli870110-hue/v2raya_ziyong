@@ -1,0 +1,50 @@
+name: Build v2rayA Bundle
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up environment
+        run: |
+          mkdir -p bundle/bin bundle/v2ray-core
+
+      - name: Download v2rayA
+        run: |
+          V2RAYA_URL=$(curl -s https://api.github.com/repos/mzz2017/v2rayA/releases/latest | grep browser_download_url | grep linux-amd64 | cut -d '"' -f 4)
+          curl -L "$V2RAYA_URL" -o v2raya.tar.gz
+          tar -xzf v2raya.tar.gz -C bundle/bin
+          chmod +x bundle/bin/v2rayA
+
+      - name: Download v2ray-core
+        run: |
+          CORE_URL=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest | grep browser_download_url | grep linux-64.zip | cut -d '"' -f 4)
+          curl -L "$CORE_URL" -o core.zip
+          unzip core.zip -d bundle/v2ray-core
+          chmod +x bundle/v2ray-core/v2ray
+
+      - name: Create run.sh
+        run: |
+          echo '#!/bin/bash' > bundle/run.sh
+          echo './v2ray-core/v2ray -config ./v2ray-core/config.json &' >> bundle/run.sh
+          echo './bin/v2rayA' >> bundle/run.sh
+          chmod +x bundle/run.sh
+
+      - name: Archive bundle
+        run: |
+          tar -czvf v2rayA-bundle.tar.gz bundle/
+
+      - name: Upload release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: v2rayA-bundle.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
