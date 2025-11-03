@@ -1,61 +1,54 @@
-name: 构建 v2rayA 合成版本包
+name: Build and Release for v2rayA Bundle
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-v2raya:
+    runs-on: ubuntu-22.04
+
     steps:
-      - name: 安装依赖
-        run: |
-          sudo apt update
-          sudo apt install -y curl wget jq unzip
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: 初始化打包目录
-        run: |
-          mkdir -p bundle/v2ray-core
-          mkdir -p bundle/v2rayA
+    - name: Build v2rayA Bundle inside Ubuntu 16.04 container
+      run: |
+        docker run --rm -v $PWD:/build -w /build ubuntu:16.04 bash -c "
+          set -e
+          apt update &&
+          DEBIAN_FRONTEND=noninteractive apt install -y \
+            curl wget unzip jq ca-certificates &&
+          
+          mkdir -p /build/output/v2ray-core &&
+          mkdir -p /build/output/v2rayA &&
 
-      - name: 下载 v2ray-core（排除 .dgst）
-        run: |
-          CORE_URL=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest \
-            | jq -r '.assets[] | select(.name | test("linux-64.zip$")) | .browser_download_url')
-          echo "v2ray-core 下载链接：$CORE_URL"
-          curl -L "$CORE_URL" -o v2ray-core.zip
-          unzip v2ray-core.zip -d bundle/v2ray-core
-          chmod +x bundle/v2ray-core/v2ray
+          echo '📥 下载 v2ray-core...' &&
+          CORE_URL=\$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest | jq -r '.assets[] | select(.name | test(\"linux-64.zip$\")) | .browser_download_url') &&
+          curl -L \$CORE_URL -o v2ray-core.zip &&
+          unzip v2ray-core.zip -d /build/output/v2ray-core &&
+          chmod +x /build/output/v2ray-core/v2ray &&
 
-      - name: 下载 v2rayA（固定版本）
-        run: |
-          V2RAYA_URL="https://github.com/v2rayA/v2rayA/releases/download/v2.2.7.3/v2raya_linux_x64_2.2.7.3"
-          echo "v2rayA 下载链接：$V2RAYA_URL"
-          curl -L "$V2RAYA_URL" -o bundle/v2rayA/v2rayA
-          chmod +x bundle/v2rayA/v2rayA
+          echo '📥 下载 v2rayA...' &&
+          curl -L https://github.com/v2rayA/v2rayA/releases/download/v2.2.7.3/v2raya_linux_x64_2.2.7.3 -o /build/output/v2rayA/v2rayA &&
+          chmod +x /build/output/v2rayA/v2rayA
+        "
 
-      - name: 打包为 tar.gz
-        run: |
-          tar -czvf v2rayA-bundle.tar.gz bundle/
+    - name: Package build output
+      run: |
+        tar -czvf v2rayA-bundle.tar.gz -C output .
 
-      - name: 创建 GitHub Release（自动生成 tag）
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v2rayA-bundle-${{ github.run_id }}
-          release_name: v2rayA 合成版本 ${{ github.run_id }}
-          draft: false
-          prerelease: false
-
-      - name: 上传构建产物
-        uses: softprops/action-gh-release@v1
-        with:
-          files: v2rayA-bundle.tar.gz
-          tag_name: v2rayA-bundle-${{ github.run_id }}
-
-
-
-
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v2rayA-bundle-v2.2.7.3
+        name: "v2rayA 合成版本 v2.2.7.3"
+        body: |
+          ✅ 包含 v2ray-core 最新版本（自动获取）  
+          ✅ 包含 v2rayA v2.2.7.3（静态二进制）  
+          ✅ 适用于 QNAP、Ubuntu、Debian 等系统  
+          ✅ 无需 systemd，适合自定义集成部署
+        files: v2rayA-bundle.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
