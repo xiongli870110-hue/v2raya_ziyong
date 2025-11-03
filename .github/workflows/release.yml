@@ -1,72 +1,43 @@
-name: 打包 v2rayA + v2ray-core
+name: 构建 v2rayA 安装包（APT方式）
 
 on:
   workflow_dispatch:
-    inputs:
-      v2raya_version:
-        description: 'v2rayA 版本（如 v2.1.5 或留空使用最新）'
-        required: false
-        default: ''
-      v2ray_core_version:
-        description: 'v2ray-core 版本（如 v5.12.0 或留空使用最新）'
-        required: false
-        default: ''
-      arch:
-        description: '目标架构（如 amd64、arm64）'
-        required: false
-        default: 'amd64'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 安装依赖
-        run: sudo apt-get update && sudo apt-get install -y jq unzip
+        run: sudo apt update && sudo apt install -y iptables curl wget jq
 
-      - name: 创建目录结构
+      - name: 安装 v2ray-core
         run: |
-          mkdir -p bundle/bin bundle/v2ray-core
+          curl -Ls https://hubmirror.v2raya.org/raw/v2fly/fhs-install-v2ray/master/install-release.sh | sudo bash
+          sudo systemctl disable v2ray --now
 
-      - name: 下载 v2rayA
+      - name: 添加 v2raya APT 源并安装
         run: |
-          if [ "${{ github.event.inputs.v2raya_version }}" = "" ]; then
-            V2RAYA_URL=$(curl -s https://api.github.com/repos/mzz2017/v2rayA/releases/latest | jq -r '.assets[] | select(.name | test("linux-${{ github.event.inputs.arch }}.*\\.tar\\.gz")) | .browser_download_url')
-          else
-            V2RAYA_URL="https://github.com/mzz2017/v2rayA/releases/download/${{ github.event.inputs.v2raya_version }}/v2rayA-linux-${{ github.event.inputs.arch }}.tar.gz"
-          fi
-          echo "下载链接：$V2RAYA_URL"
-          curl -L "$V2RAYA_URL" -o v2raya.tar.gz
-          tar -xzf v2raya.tar.gz -C bundle/bin
-          chmod +x bundle/bin/v2rayA
+          wget -qO - https://apt.v2raya.mzz.pub/key/public-key.asc | sudo tee /etc/apt/trusted.gpg.d/v2raya.asc
+          echo "deb https://apt.v2raya.mzz.pub/ v2raya main" | sudo tee /etc/apt/sources.list.d/v2raya.list
+          sudo apt update
+          sudo apt install -y v2raya
 
-      - name: 下载 v2ray-core
+      - name: 收集可执行文件
         run: |
-          if [ "${{ github.event.inputs.v2ray_core_version }}" = "" ]; then
-            CORE_URL=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest | jq -r '.assets[] | select(.name | test("linux-${{ github.event.inputs.arch }}.*\\.zip")) | .browser_download_url')
-          else
-            CORE_URL="https://github.com/v2fly/v2ray-core/releases/download/${{ github.event.inputs.v2ray_core_version }}/v2ray-linux-${{ github.event.inputs.arch }}.zip"
-          fi
-          echo "下载链接：$CORE_URL"
-          curl -L "$CORE_URL" -o core.zip
-          unzip core.zip -d bundle/v2ray-core
-          chmod +x bundle/v2ray-core/v2ray
-
-      - name: 创建 run.sh 启动脚本
-        run: |
+          mkdir -p bundle/bin
+          cp /usr/bin/v2ray bundle/bin/
+          cp /usr/bin/v2raya bundle/bin/
           echo '#!/bin/bash' > bundle/run.sh
-          echo './v2ray-core/v2ray -config ./v2ray-core/config.json &' >> bundle/run.sh
-          echo './bin/v2rayA' >> bundle/run.sh
+          echo './bin/v2ray &' >> bundle/run.sh
+          echo './bin/v2raya' >> bundle/run.sh
           chmod +x bundle/run.sh
 
       - name: 打包为 tar.gz
-        run: |
-          tar -czvf v2rayA-bundle.tar.gz bundle/
+        run: tar -czvf v2rayA-bundle.tar.gz bundle/
 
       - name: 发布到 GitHub Releases
         uses: softprops/action-gh-release@v1
         with:
           files: v2rayA-bundle.tar.gz
-
-
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
