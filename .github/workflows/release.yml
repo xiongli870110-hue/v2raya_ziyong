@@ -35,9 +35,14 @@ jobs:
           chmod +x /build/output/v2rayA/v2rayA
         "
 
-    - name: Package build output
+    - name: List output contents before packaging
       run: |
-        tar -czvf v2rayA-bundle.tar.gz -C output .
+        echo "📁 打包前的内容："
+        ls -lR output
+
+    - name: Package build output (保留目录结构)
+      run: |
+        tar -czvf v2rayA-bundle.tar.gz output/
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
