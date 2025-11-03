@@ -26,14 +26,27 @@ jobs:
           unzip v2ray-core.zip -d bundle/v2ray-core
           chmod +x bundle/v2ray-core/v2ray
 
-      - name: 下载 v2rayA（排除 .dgst）
+      - name: 下载 v2rayA（带错误保护）
         run: |
-          V2RAYA_URL=$(curl -s https://api.github.com/repos/mzz2017/v2rayA/releases/latest \
-            | jq -r '.assets[] | select(.name | test("linux-amd64.tar.gz$")) | .browser_download_url')
+          V2RAYA_JSON=$(curl -s https://api.github.com/repos/mzz2017/v2rayA/releases/latest)
+          echo "$V2RAYA_JSON" > v2raya.json  # 保存调试信息
+
+          ASSET_COUNT=$(echo "$V2RAYA_JSON" | jq '.assets | length')
+          if [ "$ASSET_COUNT" -eq 0 ]; then
+            echo "❌ 最新版本的 v2rayA 没有任何可下载文件，终止构建"
+            exit 1
+          fi
+
+          V2RAYA_URL=$(echo "$V2RAYA_JSON" | jq -r '.assets[] | select(.name | test("linux-amd64.tar.gz$")) | .browser_download_url')
+          if [ -z "$V2RAYA_URL" ]; then
+            echo "❌ 未找到匹配 linux-amd64.tar.gz 的下载链接"
+            exit 1
+          fi
+
           echo "v2rayA 下载链接：$V2RAYA_URL"
           curl -L "$V2RAYA_URL" -o v2raya.tar.gz
           tar -xzf v2raya.tar.gz -C bundle/v2rayA
-          chmod +x bundle/v2rayA/v2rayA
+          chmod +x bundle/v2rayA/v2rayA || echo "⚠️ v2rayA 可执行文件未找到或不可执行"
 
       - name: 打包为 tar.gz
         run: |
@@ -43,6 +56,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: v2rayA-bundle.tar.gz
+
 
 
 
