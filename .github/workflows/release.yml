@@ -12,6 +12,11 @@ jobs:
           sudo apt update
           sudo apt install -y curl wget jq unzip
 
+      - name: 初始化打包目录
+        run: |
+          mkdir -p bundle/v2ray-core
+          mkdir -p bundle/v2rayA
+
       - name: 下载 v2ray-core（排除 .dgst）
         run: |
           CORE_URL=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest \
@@ -27,9 +32,8 @@ jobs:
             | jq -r '.assets[] | select(.name | test("linux-amd64.tar.gz$")) | .browser_download_url')
           echo "v2rayA 下载链接：$V2RAYA_URL"
           curl -L "$V2RAYA_URL" -o v2raya.tar.gz
-          mkdir -p bundle/v2rayA
           tar -xzf v2raya.tar.gz -C bundle/v2rayA
-          chmod +x bundle/v2raya/v2rayA || chmod +x bundle/v2rayA/v2rayA
+          chmod +x bundle/v2rayA/v2rayA
 
       - name: 打包为 tar.gz
         run: |
@@ -39,6 +43,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: v2rayA-bundle.tar.gz
+
 
 
 
