@@ -10,31 +10,23 @@ SHARE_DIR=/usr/local/share/v2ray
 
 mkdir -p "$BIN_DIR" "$SHARE_DIR"
 
-### ✅ 安装 v2rayA 二进制
-echo "[v2raya-install] 获取 v2rayA 最新版本号..."
-version="$(wget -qO- https://apt.v2raya.org/dists/v2raya/main/binary-amd64/Packages | grep '^Version:' | head -n1 | cut -d' ' -f2)"
-
-if [ -z "$version" ]; then
-  echo "[错误] 未能获取 v2rayA 最新版本号 ❌"
-  exit 1
-fi
-
-echo "[v2raya-install] 最新版本为：$version"
-
-cd /tmp
+### ✅ 安装 v2rayA 二进制（固定版本）
+version="2.2.7.3"
 BIN_NAME="v2raya_linux_x64_$version"
 BIN_URL="https://github.com/v2rayA/v2rayA/releases/download/v$version/$BIN_NAME"
 
-echo "[v2raya-install] 下载 v2rayA..."
+echo "[v2raya-install] 下载 v2rayA v$version..."
+cd /tmp
 wget -O "$BIN_NAME" "$BIN_URL"
 install -Dm755 "$BIN_NAME" "$BIN_DIR/v2rayA"
 
 ### ✅ 安装 v2ray-core
-CORE_URL="https://github.com/v2fly/v2ray-core/releases/download/v5.41.0/v2ray-linux-64.zip"
+CORE_VERSION="5.41.0"
+CORE_URL="https://github.com/v2fly/v2ray-core/releases/download/v$CORE_VERSION/v2ray-linux-64.zip"
 CORE_ZIP="/tmp/v2ray-core.zip"
 CORE_TMP="/tmp/v2ray-core"
 
-echo "[v2raya-install] 下载 v2ray-core v5.41.0..."
+echo "[v2raya-install] 下载 v2ray-core v$CORE_VERSION..."
 wget -O "$CORE_ZIP" "$CORE_URL"
 
 echo "[v2raya-install] 解压 v2ray-core..."
