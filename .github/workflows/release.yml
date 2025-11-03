@@ -1,4 +1,4 @@
-name: 构建 v2rayA 安装包（APT方式）
+name: 构建 v2rayA 合成版本包
 
 on:
   workflow_dispatch:
@@ -8,36 +8,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 安装依赖
-        run: sudo apt update && sudo apt install -y iptables curl wget jq
-
-      - name: 安装 v2ray-core
         run: |
-          curl -Ls https://hubmirror.v2raya.org/raw/v2fly/fhs-install-v2ray/master/install-release.sh | sudo bash
-          sudo systemctl disable v2ray --now
-
-      - name: 添加 v2raya APT 源并安装
-        run: |
-          wget -qO - https://apt.v2raya.mzz.pub/key/public-key.asc | sudo tee /etc/apt/trusted.gpg.d/v2raya.asc
-          echo "deb https://apt.v2raya.mzz.pub/ v2raya main" | sudo tee /etc/apt/sources.list.d/v2raya.list
           sudo apt update
-          sudo apt install -y v2raya
+          sudo apt install -y curl wget jq unzip
 
-      - name: 收集可执行文件
+      - name: 下载 v2ray-core
         run: |
-          mkdir -p bundle/bin
-          cp /usr/bin/v2ray bundle/bin/
-          cp /usr/bin/v2raya bundle/bin/
-          echo '#!/bin/bash' > bundle/run.sh
-          echo './bin/v2ray &' >> bundle/run.sh
-          echo './bin/v2raya' >> bundle/run.sh
-          chmod +x bundle/run.sh
+          CORE_URL=$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest | jq -r '.assets[] | select(.name | test("linux-64.zip")) | .browser_download_url')
+          echo "v2ray-core 下载链接：$CORE_URL"
+          curl -L "$CORE_URL" -o v2ray-core.zip
+          unzip v2ray-core.zip -d bundle/v2ray-core
+          chmod +x bundle/v2ray-core/v2ray
+
+      - name: 下载 v2rayA
+        run: |
+          V2RAYA_URL=$(curl -s https://api.github.com/repos/mzz2017/v2rayA/releases/latest | jq -r '.assets[] | select(.name | test("linux-amd64.tar.gz")) | .browser_download_url')
+          echo "v2rayA 下载链接：$V2RAYA_URL"
+          curl -L "$V2RAYA_URL" -o v2raya.tar.gz
+          mkdir -p bundle/v2rayA
+          tar -xzf v2raya.tar.gz -C bundle/v2rayA
+          chmod +x bundle/v2rayA/v2rayA
 
       - name: 打包为 tar.gz
-        run: tar -czvf v2rayA-bundle.tar.gz bundle/
+        run: |
+          tar -czvf v2rayA-bundle.tar.gz bundle/
 
       - name: 发布到 GitHub Releases
         uses: softprops/action-gh-release@v1
         with:
           files: v2rayA-bundle.tar.gz
+
+
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
