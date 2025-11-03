@@ -7,6 +7,7 @@ BUNDLE_URL="https://github.com/xiongli870110-hue/v2raya_ziyong/releases/download
 TMPDIR="/opt/v2ray-tmp"
 INSTALL_DIR="/opt/v2ray"
 V2RAYA_BIN="$INSTALL_DIR/v2rayA"
+SHARE_DIR="/root/.local/share/v2ray"
 
 ### ✅ 检查是否已安装
 if [ -x "$V2RAYA_BIN" ]; then
@@ -43,10 +44,25 @@ for f in "$TMPDIR/v2ray-core/"*.dat; do
   cp "$f" "$INSTALL_DIR/"
 done
 
-### ✅ 创建软链接
+### ✅ 修复权限
+chmod +x "$INSTALL_DIR/v2rayA"
+chmod +x "$INSTALL_DIR/v2ray"
+chmod 644 "$INSTALL_DIR"/*.dat
+
+### ✅ 创建软链接到 /usr/local/bin
 echo "[v2raya-install] 创建软链接到 /usr/local/bin..."
 ln -sf "$INSTALL_DIR/v2ray" /usr/local/bin/v2ray
 ln -sf "$INSTALL_DIR/v2rayA" /usr/local/bin/v2rayA
+
+### ✅ 创建 geoip/geosite 软链接，避免联网失败
+echo "[v2raya-install] 创建 geoip/geosite 软链接到 $SHARE_DIR..."
+mkdir -p "$SHARE_DIR"
+ln -sf "$INSTALL_DIR/geoip.dat" "$SHARE_DIR/geoip.dat"
+ln -sf "$INSTALL_DIR/geosite.dat" "$SHARE_DIR/geosite.dat"
+
+### ✅ 提示 TPROXY/IPTables 限制（不终止）
+echo "[v2raya-install] ⚠️ 注意：当前系统可能不支持 xt_TPROXY 或 iptables redirect 模式"
+echo "[v2raya-install] 如果你不使用透明代理，可忽略此警告"
 
 echo "[v2raya-install] 安装完成 ✅"
 echo "[v2raya-install] 可执行文件："
