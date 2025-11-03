@@ -1,4 +1,4 @@
-name: Build and Release for v2rayA Bundle
+name: Package v2rayA + core for offline install
 
 on:
   workflow_dispatch:
@@ -6,54 +6,56 @@ on:
     branches: [ main ]
 
 jobs:
-  build-v2raya:
-    runs-on: ubuntu-22.04
+  bundle:
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Build v2rayA Bundle inside Ubuntu 16.04 container
+    - name: Download v2rayA binary
       run: |
-        docker run --rm -v $PWD:/build -w /build ubuntu:16.04 bash -c "
-          set -e
-          apt update &&
-          DEBIAN_FRONTEND=noninteractive apt install -y \
-            curl wget unzip jq ca-certificates &&
-          
-          mkdir -p /build/output/v2ray-core &&
-          mkdir -p /build/output/v2rayA &&
+        mkdir -p v2rayA-bundle
+        wget -O v2rayA-bundle/v2raya_linux_x64_2.2.7.3 https://github.com/v2rayA/v2rayA/releases/download/v2.2.7.3/v2raya_linux_x64_2.2.7.3
 
-          echo '📥 下载 v2ray-core...' &&
-          CORE_URL=\$(curl -s https://api.github.com/repos/v2fly/v2ray-core/releases/latest | jq -r '.assets[] | select(.name | test(\"linux-64.zip$\")) | .browser_download_url') &&
-          curl -L \$CORE_URL -o v2ray-core.zip &&
-          unzip v2ray-core.zip -d /build/output/v2ray-core &&
-          chmod +x /build/output/v2ray-core/v2ray &&
-
-          echo '📥 下载 v2rayA...' &&
-          curl -L https://github.com/v2rayA/v2rayA/releases/download/v2.2.7.3/v2raya_linux_x64_2.2.7.3 -o /build/output/v2rayA/v2rayA &&
-          chmod +x /build/output/v2rayA/v2rayA
-        "
-
-    - name: List output contents before packaging
+    - name: Download and extract v2ray-core
       run: |
-        echo "📁 打包前的内容："
-        ls -lR output
+        mkdir -p v2rayA-bundle/v2ray-core
+        wget -O v2ray-core.zip https://github.com/v2fly/v2ray-core/releases/download/v5.41.0/v2ray-linux-64.zip
+        unzip -q v2ray-core.zip -d v2rayA-bundle/v2ray-core
 
-    - name: Package build output (保留目录结构)
+    - name: Add install script
       run: |
-        tar -czvf v2rayA-bundle.tar.gz output/
+        cat > v2rayA-bundle/install-v2raya-full.sh <<'EOF'
+        #!/bin/bash
+        set -e
+        echo "[v2raya-install] 开始安装 v2rayA + v2ray-core..."
+        BIN_DIR=/usr/local/bin
+        SHARE_DIR=/usr/local/share/v2ray
+        mkdir -p "$BIN_DIR" "$SHARE_DIR"
+        install -Dm755 ./v2raya_linux_x64_2.2.7.3 "$BIN_DIR/v2rayA"
+        install -Dm755 ./v2ray-core/v2ray "$BIN_DIR/v2ray"
+        for f in ./v2ray-core/*.dat; do
+          install -Dm644 "$f" "$SHARE_DIR/$(basename "$f")"
+        done
+        echo "[v2raya-install] 安装完成 ✅"
+        EOF
+        chmod +x v2rayA-bundle/install-v2raya-full.sh
+
+    - name: Package everything into one tar.gz
+      run: |
+        tar -czvf v2rayA-bundle.tar.gz -C v2rayA-bundle .
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v2rayA-bundle-v2.2.7.3
-        name: "v2rayA 合成版本 v2.2.7.3"
+        name: "v2rayA 离线安装包 v2.2.7.3"
         body: |
-          ✅ 包含 v2ray-core 最新版本（自动获取）  
-          ✅ 包含 v2rayA v2.2.7.3（静态二进制）  
-          ✅ 适用于 QNAP、Ubuntu、Debian 等系统  
-          ✅ 无需 systemd，适合自定义集成部署
+          ✅ 包含 v2rayA v2.2.7.3 二进制  
+          ✅ 包含 v2ray-core v5.41.0 主程序和 dat 文件  
+          ✅ 包含 install-v2raya-full.sh 一键安装脚本  
+          ✅ 适用于无法联网的 Linux 系统（QNAP、Ubuntu、Debian 等）
         files: v2rayA-bundle.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
