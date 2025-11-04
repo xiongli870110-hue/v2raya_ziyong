@@ -10,7 +10,7 @@ TMP_BUNDLE="/tmp/v2rayA-bundle.tar.gz"
 # 具备魔法网络的环境
 #BUNDLE_URL="https://github.com/xiongli870110-hue/v2raya_ziyong/releases/download/v2rayA-bundle-v2.2.7.3/v2rayA-bundle.tar.gz"
 # 适合国内用户
-BUNDLE_URL="https://github.com/xiongli870110-hue/v2raya_ziyong/releases/download/v2rayA-bundle-v2.2.7.3/v2rayA-bundle.tar.gz"
+BUNDLE_URL="https://gitee.com/rakerose/doc/raw/master/v2-bundle.tar.gz"
 INSTALL_DIR="/opt/v2ray"
 
 echo "[v2raya-fetch] 检查当前目录是否存在离线安装包..."
