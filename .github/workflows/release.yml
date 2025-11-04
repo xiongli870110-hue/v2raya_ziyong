@@ -15,7 +15,7 @@ jobs:
 
     - name: Prepare bundle directory
       run: |
-        mkdir -p bundle/v2ray-core
+        mkdir -p bundle/v2ray-core/systemd/system
 
     - name: Download v2rayA binary (x64)
       run: |
@@ -25,13 +25,37 @@ jobs:
     - name: Download v2ray-core binary
       run: |
         wget -O v2ray.zip https://github.com/v2fly/v2ray-core/releases/latest/download/v2ray-linux-64.zip
-        unzip -o v2ray.zip -d bundle/v2ray-core
+        unzip -o v2ray.zip
+        mv v2ray-linux-64/* bundle/v2ray-core/
         chmod +x bundle/v2ray-core/v2ray
 
     - name: Download geoip.dat and geosite.dat
       run: |
         wget -O bundle/v2ray-core/geoip.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geoip.dat
         wget -O bundle/v2ray-core/geosite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geosite.dat
+
+    - name: Generate default config.json (DNS disabled)
+      run: |
+        cat <<EOF > bundle/v2ray-core/config.json
+        {
+          "dns": { "servers": [] },
+          "inbounds": [{
+            "port": 10808,
+            "listen": "127.0.0.1",
+            "protocol": "socks",
+            "settings": { "auth": "noauth", "udp": true }
+          }],
+          "outbounds": [{
+            "protocol": "freedom",
+            "settings": {}
+          }]
+        }
+        EOF
+
+    - name: Add version marker
+      run: |
+        echo "v2rayA 2.2.7.3 + v2ray-core $(date +%Y%m%d)" > bundle/VERSION.txt
+
     - name: Package bundle
       run: |
         tar -czvf v2rayA-bundle.tar.gz -C bundle .
@@ -45,6 +69,7 @@ jobs:
           ✅ Includes v2rayA x64 binary  
           ✅ Includes v2ray-core binary  
           ✅ Includes geoip.dat and geosite.dat  
+          ✅ Includes default config.json (DNS disabled)  
           ✅ Compatible with offline installation script
         files: v2rayA-bundle.tar.gz
       env:
