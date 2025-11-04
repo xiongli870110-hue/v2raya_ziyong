@@ -30,9 +30,8 @@ jobs:
 
     - name: Download geoip.dat and geosite.dat
       run: |
-        wget -O bundle/v2ray-core/geoip.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O bundle/v2ray-core/geosite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-
+        wget -O bundle/v2ray-core/geoip.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geoip.dat
+        wget -O bundle/v2ray-core/geosite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geosite.dat
     - name: Package bundle
       run: |
         tar -czvf v2rayA-bundle.tar.gz -C bundle .
