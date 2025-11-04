@@ -75,9 +75,14 @@ systemctl status v2rayA     # 查看状态
 systemctl stop v2rayA
 systemctl disable v2rayA
 
-rm -rf /opt/v2ray        /usr/local/bin/v2ray        /usr/local/bin/v2rayA        /usr/local/share/v2ray        /etc/systemd/system/v2rayA.service
+rm -rf /opt/v2ray \
+       /usr/local/bin/v2ray \
+       /usr/local/bin/v2rayA \
+       /usr/local/share/v2ray \
+       /etc/systemd/system/v2rayA.service
 
 systemctl daemon-reload
+
 ```
 
 ---
