@@ -1,4 +1,4 @@
-name: Build and Release v2rayA Bundle
+name: Release v2rayA Core Bundle
 
 on:
   workflow_dispatch:
@@ -6,70 +6,49 @@ on:
     branches: [ main ]
 
 jobs:
-  build-v2raya:
+  build-and-release:
     runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Prepare bundle directory
+    - name: Prepare bundle structure
       run: |
-        mkdir -p bundle/v2ray-core/systemd/system
+        mkdir -p bundle/usr/local/bin
+        mkdir -p bundle/usr/local/share/v2ray
 
-    - name: Download v2rayA binary (x64)
-      run: |
-        wget -O bundle/v2raya_linux_x64_2.2.7.3 https://github.com/v2rayA/v2rayA/releases/download/v2.2.7.3/v2raya_linux_x64_2.2.7.3
-        chmod +x bundle/v2raya_linux_x64_2.2.7.3
-
-    - name: Download and extract v2ray-core
+    - name: Download v2ray-core and extract
       run: |
         wget -O v2ray.zip https://github.com/v2fly/v2ray-core/releases/latest/download/v2ray-linux-64.zip
-        unzip -o v2ray.zip -d tmp-v2ray
-        mkdir -p bundle/v2ray-core
-        cp tmp-v2ray/v2ray bundle/v2ray-core/
-        cp tmp-v2ray/*.json bundle/v2ray-core/
-        cp tmp-v2ray/*.dat bundle/v2ray-core/
-        cp -r tmp-v2ray/systemd bundle/v2ray-core/
+        unzip -o v2ray.zip -d v2ray
+        install -Dm755 v2ray/v2ray bundle/usr/local/bin/v2ray
 
-    - name: Overwrite config.json with DNS disabled
+    - name: Download geoip.dat and geosite.dat
       run: |
-        cat <<EOF > bundle/v2ray-core/config.json
-        {
-          "dns": { "servers": [] },
-          "inbounds": [{
-            "port": 10808,
-            "listen": "127.0.0.1",
-            "protocol": "socks",
-            "settings": { "auth": "noauth", "udp": true }
-          }],
-          "outbounds": [{
-            "protocol": "freedom",
-            "settings": {}
-          }]
-        }
-        EOF
+        wget -O bundle/usr/local/share/v2ray/geoip.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geoip.dat
+        wget -O bundle/usr/local/share/v2ray/geosite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geosite.dat
 
-    - name: Add version marker
+    - name: Download v2rayA binary
       run: |
-        echo "v2rayA 2.2.7.3 + v2ray-core $(date +%Y%m%d)" > bundle/VERSION.txt
+        wget -O bundle/usr/local/bin/v2raya https://github.com/v2rayA/v2rayA/releases/download/v2.2.7.3/v2raya_linux_x64_2.2.7.3
+        chmod +x bundle/usr/local/bin/v2raya
 
     - name: Package bundle
       run: |
-        tar -czvf v2rayA-bundle.tar.gz -C bundle .
+        tar -czvf v2rayA-core-bundle.tar.gz -C bundle .
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v2rayA-bundle-v2.2.7.3
-        name: "v2rayA Bundle v2.2.7.3"
+        tag_name: v2rayA-core-bundle-v2.2.7.3
+        name: "v2rayA Core Bundle v2.2.7.3"
         body: |
-          ✅ Includes v2rayA x64 binary  
-          ✅ Includes v2ray-core binary  
-          ✅ Includes geoip.dat and geosite.dat  
-          ✅ Includes default config.json (DNS disabled)  
-          ✅ Includes systemd templates  
-          ✅ Compatible with offline installation script
-        files: v2rayA-bundle.tar.gz
+          ✅ v2ray-core binary  
+          ✅ v2rayA binary  
+          ✅ geoip.dat + geosite.dat  
+          📁 安装路径模拟为 /usr/local/bin 和 /usr/local/share/v2ray  
+          📦 可用于离线部署或自动安装脚本
+        files: v2rayA-core-bundle.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GH_PAT }}
