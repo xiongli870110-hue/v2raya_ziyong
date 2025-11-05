@@ -41,13 +41,13 @@ jobs:
 
     - name: Package bundle
       run: |
-        tar -czvf v2rayA-core-bundle.tar.gz -C bundle .
+        tar -czvf v2rayA-core-quote.tar.gz -C bundle .
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v2rayA-core-bundle-v2.2.7.3
-        name: "v2rayA Core Bundle v2.2.7.3"
+        tag_name: v2rayA-core-quote-v2.2.7.3
+        name: "v2rayA Core Quote v2.2.7.3"
         body: |
           ✅ v2ray-core binary  
           ✅ v2rayA binary  
