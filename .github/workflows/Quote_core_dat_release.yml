@@ -1,4 +1,4 @@
-name: Release v2rayA Core Bundle
+name: Release v2rayA Core Quote
 
 on:
   workflow_dispatch:
