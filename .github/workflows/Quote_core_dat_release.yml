@@ -1,0 +1,59 @@
+name: Release v2rayA Core Bundle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Prepare bundle structure
+      run: |
+        mkdir -p bundle/usr/local/bin
+        mkdir -p bundle/usr/local/share/v2ray
+
+    - name: Download v2ray-core and extract
+      run: |
+        wget -O v2ray.zip https://github.com/v2fly/v2ray-core/releases/latest/download/v2ray-linux-64.zip
+        unzip -o v2ray.zip -d v2ray
+        install -Dm755 v2ray/v2ray bundle/usr/local/bin/v2ray
+        install -Dm664 v2ray/geoip.dat bundle/usr/local/share/v2ray/geoip.dat
+        install -Dm664 v2ray/geosite.dat bundle/usr/local/share/v2ray/geosite.dat
+        if [ -f v2ray/geoip-only-cn-private.dat ]; then
+          install -Dm664 v2ray/geoip-only-cn-private.dat bundle/usr/local/share/v2ray/geoip-only-cn-private.dat
+        fi
+
+    #- name: Download geoip.dat and geosite.dat
+      #run: |
+        #wget -O bundle/usr/local/share/v2ray/geoip.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geoip.dat
+        #wget -O bundle/usr/local/share/v2ray/geosite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/202511032214/geosite.dat
+
+    - name: Download v2rayA binary
+      run: |
+        wget -O bundle/usr/local/bin/v2raya https://github.com/v2rayA/v2rayA/releases/download/v2.2.7.3/v2raya_linux_x64_2.2.7.3
+        chmod +x bundle/usr/local/bin/v2raya
+
+    - name: Package bundle
+      run: |
+        tar -czvf v2rayA-core-bundle.tar.gz -C bundle .
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v2rayA-core-bundle-v2.2.7.3
+        name: "v2rayA Core Bundle v2.2.7.3"
+        body: |
+          ✅ v2ray-core binary  
+          ✅ v2rayA binary  
+          ✅ geoip.dat + geosite.dat  
+          📁 安装路径模拟为 /usr/local/bin 和 /usr/local/share/v2ray  
+          📦 可用于离线部署或自动安装脚本
+        files: v2rayA-core-quote.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_PAT }}
